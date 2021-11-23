@@ -1,0 +1,25 @@
+
+	<project name= "StateMachineSimulator" default="checkModel">
+		
+	<!-- to remove counter examples add to the argline -dcx -->
+		
+	<!-- For Windows 64-bit: -->
+		
+		<target name="checkModel" >
+			<record name="${basedir}/checkreport.txt" action="start"/>
+			<exec dir="${basedir}/NuSMV-2.6.0-win64/bin" executable="NuSMV.exe" resolveexecutable="true">
+			  <arg line="-dcx ${basedir}/code.smv"/>
+			</exec>
+		</target>
+		
+	<!-- For Linux:
+	
+		<target name="checkModel" >
+			<record name="${basedir}/checkreport.txt" action="start"/>
+			<exec dir="${basedir}/NuSMV-2.6.0-Linux/bin" executable="NuSMV" resolveexecutable="true">
+			  <arg line="-dcx ${basedir}/code.smv"/>
+			</exec>
+		</target> -->
+		
+	</project>
+

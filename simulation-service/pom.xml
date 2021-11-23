@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.5.2</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.springboot</groupId>
+	<artifactId>simulation-service</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>simulation-service</name>
+	<description>Demo project for Spring Boot</description>
+	<properties>
+		<java.version>1.8</java.version>
+		<epsilon.version>2.3.0</epsilon.version>
+		<epsilon.scope>compile</epsilon.scope>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20201115</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.6</version>
+		</dependency>
+		
+		<dependency>
+	<groupId>org.eclipse.platform</groupId>
+	<artifactId>org.eclipse.ant.core</artifactId>
+	<version>3.5.100</version>
+</dependency>
+		
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+			<version>1.11.327</version>
+		</dependency>
+		
+		<dependency>
+		  <groupId>org.apache.ant</groupId>
+		  <artifactId>ant-launcher</artifactId>
+		  <version>1.10.1</version>
+		</dependency>
+		<dependency>
+		  <groupId>org.apache.maven</groupId>
+		  <artifactId>maven-ant-tasks</artifactId>
+		  <version>2.1.3</version>
+		</dependency>
+		
+		
+		
+		<dependency>
+			<groupId>org.eclipse.epsilon</groupId>
+			<artifactId>org.eclipse.epsilon.emc.uml</artifactId>
+			<version>${epsilon.version}</version>
+			<scope>${epsilon.scope}</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.epsilon</groupId>
+			<artifactId>org.eclipse.epsilon.emc.plainxml</artifactId>
+			<version>${epsilon.version}</version>
+			<scope>${epsilon.scope}</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.epsilon</groupId>
+			<artifactId>org.eclipse.epsilon.egl.engine</artifactId>
+			<version>${epsilon.version}</version>
+			<scope>${epsilon.scope}</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.epsilon</groupId>
+			<artifactId>org.eclipse.epsilon.evl.engine</artifactId>
+			<version>${epsilon.version}</version>
+			<scope>${epsilon.scope}</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.epsilon</groupId>
+			<artifactId>org.eclipse.epsilon.eml.engine</artifactId>
+			<version>${epsilon.version}</version>
+			<scope>${epsilon.scope}</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.github.abelgomez.cpntools</groupId>
+			<artifactId>io.github.abelgomez.cpntools</artifactId>
+			<version>0.4.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.github.abelgomez.cpntools</groupId>
+			<artifactId>io.github.abelgomez.cpntools.io</artifactId>
+			<version>0.4.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>net.sf.jung</groupId>
+			<artifactId>jung-algorithms</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>net.sf.jung</groupId>
+			<artifactId>jung-graph-impl</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.cpntools.accesscpn</groupId>
+		    <artifactId>engine</artifactId>
+		    <version>2.2.0</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.cpntools.accesscpn</groupId>
+		    <artifactId>engine.highlevel</artifactId>
+		    <version>2.2.0</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.cpntools.accesscpn</groupId>
+		    <artifactId>model</artifactId>
+		    <version>2.2.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.cpntools.accesscpn</groupId>
+  			<artifactId>model.importer</artifactId>
+  			<version>2.2.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.cpntools.accesscpn</groupId>
+  			<artifactId>engine.proxy</artifactId>
+  			<version>2.2.0</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.cpntools.accesscpn</groupId>
+  			<artifactId>cosimulation</artifactId>
+  			<version>2.2.0</version>
+		</dependency>
+		
+		
+		
+	</dependencies>
+	
+	<repositories>
+		<repository>
+			<id>deps-repo</id>
+			<url>file://${project.basedir}/deps-repo</url>
+		</repository>
+	</repositories>
+
+	<build>
+	<resources>
+	    <resource>
+        	<directory>src/main/resources</directory>
+        	<filtering>true</filtering>
+     	</resource>
+	 </resources>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			
+			<plugin>
+        		<artifactId>maven-eclipse-plugin</artifactId>
+        		<version>2.10</version>
+        		<configuration>
+         			<pde>true</pde>
+        		</configuration>
+     		</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -1,0 +1,175 @@
+
+
+[%
+var code = "class GeneratedStateMachineClass{\n";
+
+for (sm in StateMachine.all){
+	for (c in sm.ownedComment){
+		if (sm.ownedComment.body.isDefined()){
+			code += sm.ownedComment.body[0] + "\n";
+		}
+	}
+}
+
+for (sm in StateMachine.all){
+	code += sm.name + " {\n";
+	for (r in sm.region){
+		code += getAllregionContents(r);
+	}
+	code += "}\n";
+}
+
+code += "}";
+
+
+%]
+
+
+
+[%=code%]
+
+
+[%
+operation getAllregionContents(reg : Region) : String { 
+var ret = "";
+var firststate;
+var fs = "";
+		
+for (s in reg.subvertex){
+	if(s.type().name.toString == "Pseudostate" and s.kind.toString.equals("initial") ){
+		for (t in reg.transition){
+			if(t.source == s){
+				firststate = t.target;
+			}
+		}
+	}		
+}
+	
+for (s in reg.subvertex){
+		if(s.type().name.toString == "State" ){
+			if(s == firststate){
+				fs += s.name + " {\n";
+				if (s.entry.isDefined()){
+						fs += "entry/{" + s.entry.name + ";}\n";
+				}
+				if (s.doActivity.isDefined()){
+					fs += "do {" + s.doActivity.name + ";}\n";
+				}
+				if (s.exit.isDefined()){
+					fs += "exit/{" + s.exit.name + ";}\n";
+				}
+				if (s.region.isDefined()){
+					for (r in s.region){
+						fs += getAllregionContents(r);
+					}
+				}
+				for (t in reg.transition){
+					if (t.source.type().name.toString == "State"){
+						if(t.target.type().name.toString == "State"){
+							if(t.source == s){
+								if (t.trigger.isDefined()){
+									fs += t.trigger.name[0] + " ";
+								}
+								if (t.guard.isDefined()){
+									fs += "[" + t.guard.name + "] ";
+								}
+								if (t.effect.isDefined()){
+									fs += "/{" + t.effect.name + ";} ";
+								}
+								fs += "-> " + t.target.name + ";\n";
+							}
+						}
+						if(t.target.type().name.toString == "Pseudostate" and 
+						(t.target.kind.toString.equals("shallowHistory") or t.target.kind.toString.equals("deepHistory"))
+						and t.target.state.isDefined()){
+							if(t.source == s){
+								if (t.trigger.isDefined()){
+									fs += t.trigger.name[0] + " ";
+								}
+								if (t.guard.isDefined()){
+									fs += "[" + t.guard.name + "] ";
+								}
+								if (t.effect.isDefined()){
+									fs += "/{" + t.effect.name + ";} ";
+								}
+								if(t.target.kind.toString.equals("shallowHistory")){
+									fs += "-> " + t.target.state.name + ".H;\n";
+								}
+								if(t.target.kind.toString.equals("deepHistory")){
+									fs += "-> " + t.target.state.name + ".HStar;\n";
+								}
+								if(t.target.kind.toString.equals("final")){
+									fs += "-> " + "Final;\n";
+								}
+							}
+						}
+					}
+				}
+				fs += "}\n";
+			}
+			if(s != firststate){
+				ret += s.name + " {\n";
+				if (s.entry.isDefined()){
+						ret += "entry/{" + s.entry.name + ";}\n";
+				}
+				if (s.doActivity.isDefined()){
+					ret += "do {" + s.doActivity.name + ";}\n";
+				}
+				if (s.exit.isDefined()){
+					ret += "exit/{" + s.exit.name + ";}\n";
+				}
+				if (s.region.isDefined()){
+					for (r in s.region){
+						ret += getAllregionContents(r);
+					}
+				}
+				for (t in reg.transition){
+					if (t.source.type().name.toString == "State"){
+						if(t.target.type().name.toString == "State"){
+							if(t.source == s){
+								if (t.trigger.isDefined()){
+									ret += t.trigger.name[0] + " ";
+								}
+								if (t.guard.isDefined()){
+									ret += "[" + t.guard.name + "] ";
+								}
+								if (t.effect.isDefined()){
+									ret += "/{" + t.effect.name + ";} ";
+								}
+								ret += "-> " + t.target.name + ";\n";
+							}
+						}
+						if(t.target.type().name.toString == "Pseudostate" and
+						(t.target.kind.toString.equals("shallowHistory") or t.target.kind.toString.equals("deepHistory"))
+						and t.target.state.isDefined()){
+							if(t.source == s){
+								if (t.trigger.isDefined()){
+									ret += t.trigger.name[0] + " ";
+								}
+								if (t.guard.isDefined()){
+									ret += "[" + t.guard.name + "] ";
+								}
+								if (t.effect.isDefined()){
+									ret += "/{" + t.effect.name + ";} ";
+								}
+								if(t.target.kind.toString.equals("shallowHistory")){
+									ret += "-> " + t.target.state.name + ".H;\n";
+								}
+								if(t.target.kind.toString.equals("deepHistory")){
+									ret += "-> " + t.target.state.name + ".HStar;\n";
+								}
+								if(t.target.kind.toString.equals("final")){
+									fs += "-> " + "Final;\n";
+								}
+							}
+						}
+					}
+				}
+				ret += "}\n";				
+			}
+		}
+}
+return fs+ret;
+}
+%]
+ 

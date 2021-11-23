@@ -1,0 +1,29 @@
+<project name= "StateMachineSimulator" default="runJava">
+	
+   
+	<target name="runJava" depends="compileJava" >
+		<exec executable="java">
+			<arg line="-classpath ${basedir}/build Main"/>
+		</exec>
+		<record name="${basedir}/trace.txt" action="stop"/>
+	</target>
+	
+	
+	<target name="compileJava" depends="generateJava">
+
+		<javac srcdir="${basedir}"
+	       	destdir="${basedir}/build"
+			includeantruntime="false"
+		/>
+	    <record name="${basedir}/trace.txt" action="start"/>
+	</target>
+	
+	
+	
+	<target name="generateJava">
+	     <exec executable="java">
+	       <arg line="-jar ${basedir}/umple.jar -g Java ${basedir}/smant.ump --path ${basedir}"/>
+	     </exec>
+	</target>
+	
+</project>

@@ -1,0 +1,234 @@
+
+[%
+var code = "MODULE main\n";
+var first=0;
+
+for (act in Activity.all){
+	if(first==0){
+	
+		code += "\nVAR\n";
+		for (n in act.node){
+			if (not n.isTypeOf(DecisionNode)){
+				code+= n.name.replace(" ","_") + " : boolean;\n";
+			}
+			else{
+				code+= n.name.replace(" ","_") + " : {undetermined";
+				var og = n.getOutgoings();
+				for (o in og){
+					code+= ", " + o.name.substring(1, o.name.length-1).replace(" ","_");
+				}
+				code += "};\n";
+			}
+		}	
+	
+		
+//ASSIGN			
+		
+		code += "\nASSIGN\n";
+		for (n in act.node){
+			var name = n.name.replace(" ","_");
+			if (n.isTypeOf(InitialNode)){
+				code+= "init(" + name + ") := TRUE;\n";
+				code+= "next(" + name + ") := case\n";
+				code+= "\t" + name + " : FALSE;\n";
+				code+= "\t" + "TRUE : " + name + ";\n";
+				code+= "\t" + "esac;\n";	
+			}
+			if (n.isTypeOf(DecisionNode)){
+				code+= "init(" + name + ") := undetermined;\n";
+				code+= "next(" + name + ") := case\n";
+				
+				var incoming = n.getIncomings();
+				var count = 0;
+
+				for (i in incoming){
+					if (count!=0){
+						code+= " & ";
+					}
+					else{
+						code+= "\t";
+					}
+					if (i.source.isTypeOf(DecisionNode)){
+						code+= "(" + i.source.name.replace(" ","_") + " = " + i.name.substring(1, i.name.length-1).replace(" ","_") + ")";
+					}
+					else{
+						code+= i.source.name.replace(" ","_");
+					}
+					count++;
+				}
+				
+				code+= " : {";
+				var outgoing = n.getOutgoings();
+				var count = 0;
+				for (o in outgoing){
+					if (count!=0){
+						code+= ", ";
+					}
+					code+= o.name.substring(1, o.name.length-1).replace(" ","_");
+					count++;
+				}
+				code+= "};\n";
+
+				code+= "\t" + name + " != undetermined : undetermined;\n";
+				code+= "\t" + "TRUE : " + name + ";\n";
+				code+= "\t" + "esac;\n";
+			}
+			if (n.isTypeOf(MergeNode)){
+				code+= "init(" + name + ") := FALSE;\n";
+				code+= "next(" + name + ") := case\n";
+				var incoming = n.getIncomings();
+				var count = 0;
+				
+				for (i in incoming){
+					if (count!=0){
+						code+= " | ";
+					}
+					else{
+						code+= "\t";
+					}
+					if (i.source.isTypeOf(DecisionNode)){
+						code+= "(" + i.source.name.replace(" ","_") + " = " + i.name.substring(1, i.name.length-1).replace(" ","_") + ")";
+					}
+					else{
+						code+= i.source.name.replace(" ","_");
+					}
+					count++;
+				}
+				code+= " : TRUE;\n";
+				code+= "\t" + name + " : FALSE;\n";
+				code+= "\t" + "TRUE : " + name + ";\n";
+				code+= "\t" + "esac;\n";
+			}
+			if(not (n.isTypeOf(MergeNode) or n.isTypeOf(DecisionNode) or n.isTypeOf(InitialNode))){
+				code+= "init(" + name + ") := FALSE;\n";
+				code+= "next(" + name + ") := case\n";
+				var incoming = n.getIncomings();
+				var count = 0;
+				
+				for (i in incoming){
+					if (count!=0){
+						code+= " & ";
+					}
+					else{
+						code+= "\t";
+					}
+					if (i.source.isTypeOf(DecisionNode)){
+						code+= "(" + i.source.name.replace(" ","_") + " = " + i.name.substring(1, i.name.length-1).replace(" ","_") + ")";
+					}
+					else{
+						code+= i.source.name.replace(" ","_");
+					}
+					count++;
+				}
+				code+= " : TRUE;\n";
+				code+= "\t" + name + " : FALSE;\n";
+				code+= "\t" + "TRUE : " + name + ";\n";
+				code+= "\t" + "esac;\n";
+			}
+		}
+		
+		
+		
+//LTL RULES		
+		
+		
+		code+="\n";
+		for (e in act.edge){
+			if((e.source.isTypeOf(OpaqueAction) or e.source.isTypeOf(InitialNode)) and (e.target.isTypeOf(OpaqueAction) or e.target.isTypeOf(ActivityFinalNode))){
+				code+= "LTLSPEC G (" + e.source.name.replace(" ","_") + " -> F " + e.target.name.replace(" ","_") + ")\n";
+			}
+		}
+		
+		for(n in act.node){
+			if(n.isTypeOf(MergeNode)){
+				code+= "LTLSPEC G (";
+				var count = 0;
+				for (i in n.getIncomings()){
+					if (count!=0){
+						code+= " | ";
+					}
+					code+= getSource(i);
+					count++;
+				}
+				code+= " -> F " + getTargetNode(n.getOutgoings()[0]) + ")\n";
+			}
+			if(n.isTypeOf(DecisionNode)){
+				
+				code+= "LTLSPEC G (" + getSource(n.getIncomings()[0]) + " -> ( (X X ";
+				
+				var count = 0;
+				for (o in n.getOutgoings()){
+					if (count!=0){
+						code+= " xor (X X ";
+					}
+					code += getTargetNode(o) + ")";
+					count++;
+				}
+				code+= "))\n";
+			}
+			if(n.isTypeOf(JoinNode)){
+				code+= "LTLSPEC G (";
+				var count = 0;
+				for (i in n.getIncomings()){
+					if (count!=0){
+						code+= " & ";
+					}
+					code+= getSource(i);
+					count++;
+				}
+				code+= " -> F " + getTargetNode(n.getOutgoings()[0]) + ")\n";
+			}
+			if(n.isTypeOf(ForkNode)){
+				code+= "LTLSPEC G (" + getSource(n.getIncomings()[0]) + " -> (F ";
+				var count = 0;
+				for (o in n.getOutgoings()){
+					if (count!=0){
+						code+= " & F ";
+					}
+					code+= getTargetNode(o);
+					count++;
+				}
+				code+= "))\n";
+			}
+			if(n.isTypeOf(ActivityFinalNode)){
+				code += "CTLSPEC EF " + n.name.replace(" ","_") + "\n";
+			}
+		}
+	first++;
+	}
+}
+
+%]
+
+
+
+[%=code%]
+
+
+
+[%
+operation getTargetNode(e : ActivityEdge) : String {
+	if(e.target.isTypeOf(DecisionNode)){
+		return "(" + e.target.name.replace(" ","_") + " !=  undetermined)";
+	}
+	else{
+		return e.target.name.replace(" ","_");
+	}
+}
+%]
+
+[%
+operation getSource(e : ActivityEdge) : String { 
+	if(e.source.isTypeOf(DecisionNode)){
+		return "(" + e.source.name.replace(" ","_") + " = " + e.name.substring(1, e.name.length-1).replace(" ","_") + ")";
+	}
+	else{
+		return e.source.name.replace(" ","_");
+	}
+}
+%]
+
+
+
+
+

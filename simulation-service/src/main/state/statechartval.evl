@@ -1,0 +1,105 @@
+context StateMachine{
+
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'State machine must always have a name'
+	}
+	
+}
+
+context State{
+
+	constraint HasName{
+		check : self.name.isDefined()	
+		message : 'State must always have a name'
+	}
+	
+}
+
+context Transition{
+
+	constraint HasSource{
+		check : self.source.isDefined()
+		message : 'A transition must have a source'
+	}
+	
+	constraint HasTarget{
+		check : self.target.isDefined()
+		message : 'A transition must have a target'
+	}
+	
+
+	constraint InitialIsNotTarget{
+		guard : self.target.isDefined()
+		check : not (self.target.type().name.toString.equals("Pseudostate") and self.target.kind.toString.equals("initial"))
+		message : 'A transition cannot have an initial pseudostate has its target (only as its source)'
+	}
+	
+	constraint FinalIsNotSource{
+		guard : self.source.isDefined() 
+		check : not (self.source.type().name.toString.equals("Pseudostate") and self.source.kind.toString.equals("final"))
+		message : 'A transition cannot have an final pseudostate has its source (only as its target)'
+	}
+	
+	constraint HasValidSource{
+		guard : self.source.isDefined()
+		check : self.source.type().name.toString.equals("State") or
+				(self.source.type().name.toString.equals("Pseudostate") and self.source.kind.toString.equals("initial"))
+		message : 'Transition source must be a state or initial pseudostate'
+	}
+	
+	constraint HasValidTarget{
+		guard : self.target.isDefined()
+		check : self.target.type().name.toString.equals("State") or
+				(self.target.type().name.toString.equals("Pseudostate") and self.target.kind.toString.equals("deepHistory")) or
+				(self.target.type().name.toString.equals("Pseudostate") and self.target.kind.toString.equals("shallowHistory"))
+		message : 'Transition source must be a state or history pseudostate'
+	}
+	
+}
+
+context Pseudostate{
+
+	constraint HasState{
+		guard : self.kind.toString.equals("deepHistory") or self.kind.toString.equals("shallowHistory")
+		check : self.state.isDefined()	
+		message : 'A history pseudostate must be in a state'
+	}
+	
+}
+
+context Constraint{
+
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Guard must always have a name'
+	}
+	
+}
+
+context Trigger{
+
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Trigger must always have a name'
+	}
+	
+}
+
+context Effect{
+
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Effect must always have a name'
+	}
+	
+}
+
+context Activity{
+
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Entry, Exit and Do activities must always have a name'
+	}
+	
+}

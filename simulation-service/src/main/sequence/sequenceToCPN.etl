@@ -1,0 +1,610 @@
+//R1
+pre{
+	var pn : new cpnmeta!Cpnet;
+	var page : new cpnmeta!Page;
+	var bind : new cpnmeta!Binder;
+	page.name = "Page";
+	bind.height = 3000;
+	bind.width = 3000;
+	bind.posy = 30;
+	bind.posx = 150;
+	
+	
+	
+	var color : new cpnmeta!Integer;
+	color.idname = "INT";
+	
+	var n : new cpnmeta!Var;
+	n.idname = "n";
+	n.type = color;
+	
+	var block : new cpnmeta!Block;
+	block.idname = "STDBlock";
+	block.declarations.add(color);
+	block.declarations.add(n);
+	
+	var gb : new cpnmeta!Globbox;
+	gb.declarations.add(block);
+	
+	pn.globbox = gb;
+	pn.binder = bind;
+	pn.binder.pages.add(page);
+	
+	var begin : new cpnmeta!Place;
+	var start : new cpnmeta!Trans;
+	
+	var initmark : new cpnmeta!Initmark;
+	initmark.expression = "1";
+	begin.initmark = initmark;
+	
+	pn.addPlace(begin,"begin");
+	pn.addTransition(start,"start");
+	pn.addArcPT(begin,start,"2");
+	begin.fillColour = cpnmeta!Colour16#White;
+}
+
+
+//R2
+rule lifelines2initialPlaces
+transform s : uml!Lifeline
+to p1: cpnmeta!Place{
+	pn.addPlace(p1,"begin"+s.name);
+	pn.addArcTP(start,p1,"2");
+}
+
+
+//R3
+rule events2afterPlaces
+transform s : uml!MessageOccurrenceSpecification
+to p1 : cpnmeta!Place{
+	pn.addPlace(p1,"after"+s.label+ s.getCovered().name);
+}
+
+
+//R4-R9
+rule combinedFragments2patterns
+transform s : uml!CombinedFragment
+to decider : cpnmeta!Place
+{
+	var auxCont = s.asSequence().closure(x | x.eContents());
+	var IntOpCont = auxCont.select(it | it.isTypeOf(uml!InteractionOperand));
+
+	//R4	
+	if(s.interactionOperator.name = "seq"){
+	
+		for(lf in s.getCovereds()){
+			var prevPlace;
+			var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+	
+			if(e1 == null){
+				prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+			}
+			else{
+				prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+			}
+			
+			var finalPlace : new cpnmeta!Place;
+			pn.addPlace(finalPlace,"after" + s.name + lf.name);
+			var finalTrans : new cpnmeta!Trans;
+			pn.addTransition(finalTrans,"end"+ s.interactionOperator.name + lf.name);
+			pn.addArcTP(finalTrans,finalPlace,"2");
+		
+			for (y : uml!InteractionOperand in IntOpCont){
+				var beginIntOp : new cpnmeta!Place;
+				var beginTrans : new cpnmeta!Trans;
+		
+				pn.addPlace(beginIntOp,"after"+y.name+lf.name);
+				pn.addTransition(beginTrans,"begin"+ y.name + lf.name);
+				pn.addArcTP(beginTrans,beginIntOp,"2");
+				var lastEventPlace = y.getLastEventPlace(lf);
+				if(lastEventPlace == null){
+					lastEventPlace = beginIntOp;
+				}
+				pn.addArcPT(prevPlace,beginTrans,"2");
+				prevPlace = lastEventPlace;
+			}
+			pn.addArcPT(prevPlace,finalTrans,"2");
+		}
+	}
+	
+	//R5
+	if(s.interactionOperator.name = "strict"){
+	
+		for(lf in s.getCovereds()){
+			var prevPlace;
+			var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+	
+			if(e1 == null){
+				prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+			}
+			else{
+				prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+			}
+			
+			var finalPlace : new cpnmeta!Place;
+			pn.addPlace(finalPlace,"after"+ s.name + lf.name);
+			var finalTrans : new cpnmeta!Trans;
+			pn.addTransition(finalTrans,"end" + s.interactionOperator.name + lf.name);
+			pn.addArcTP(finalTrans,finalPlace,"2");
+	
+			for (y : uml!InteractionOperand in IntOpCont){
+				var beginIntOp : new cpnmeta!Place;
+				var beginTrans = page.transs.selectOne(it|it.text = "begin"+y.name);
+				if(beginTrans == null){
+					beginTrans = new cpnmeta!Trans;
+					pn.addTransition(beginTrans,"begin" + y.name);
+				}
+				
+				pn.addPlace(beginIntOp,"after"+y.name+lf.name);
+				pn.addArcTP(beginTrans,beginIntOp,"2");
+				var lastEventPlace = y.getLastEventPlace(lf);
+				if(lastEventPlace == null){
+					lastEventPlace = beginIntOp;
+				}
+				pn.addArcPT(prevPlace,beginTrans,"2");
+				prevPlace = lastEventPlace;
+			}
+		pn.addArcPT(prevPlace,finalTrans,"2");
+		}
+	}
+	
+	//R6
+	if(s.interactionOperator.name = "par"){
+	
+		for(lf in s.getCovereds()){
+			var prevPlace;
+			var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+
+			if(e1 == null){
+				prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+			}
+			else{
+				prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+			}
+			
+			var finalTrans : new cpnmeta!Trans;
+			pn.addTransition(finalTrans,"end" + s.interactionOperator.name + lf.name);
+			var beginTrans : new cpnmeta!Trans;
+			pn.addTransition(beginTrans,"begin" + s.interactionOperator.name + lf.name);
+			var finalPlace : new cpnmeta!Place;
+			pn.addPlace(finalPlace,"after"+ s.name + lf.name);
+			pn.addArcTP(finalTrans,finalPlace,"2");
+			pn.addArcPT(prevPlace,beginTrans,"2");
+			
+			for (y : uml!InteractionOperand in IntOpCont){
+				var beginIntOp : new cpnmeta!Place;
+				pn.addPlace(beginIntOp,"after"+y.name+lf.name);
+				pn.addArcTP(beginTrans,beginIntOp,"2");
+				pn.addArcPT(y.getLastEventPlace(lf),finalTrans,"2");
+			}
+		}
+	}
+	
+	//R7
+	if(s.interactionOperator.name = "opt"){
+		
+		pn.addPlace(decider,"decider"+s.interactionOperator.name);
+		for (y : uml!InteractionOperand in IntOpCont){
+			var decidingEvent = y.getDecidingEvent();
+			var decidingLifeline = decidingEvent.getCovered();
+			
+			for(lf in s.getCovereds()){
+				var dY : new cpnmeta!Trans;
+				var dN : new cpnmeta!Trans;
+				pn.addTransition(dY,"Yes"+lf.name);
+				pn.addTransition(dN,"No"+lf.name);
+
+				var prevPlace;
+				var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+				if(e1 == null){
+					prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+				}
+				else{
+					prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+				}
+				
+				pn.addArcPT(prevPlace,dY,"2");
+				pn.addArcPT(prevPlace,dN,"2");
+				if(lf.name == decidingLifeline.name){
+					pn.addArcTP(dY,decider,"1");
+					pn.addArcTP(dN,decider,"0");
+				}
+				else{
+					pn.addArcPT(decider,dY,"1");
+					pn.addArcPT(decider,dN,"0");
+				}
+				
+				var beginIntOp = null;
+				beginIntOp = page.places.selectOne(it|it.text = "after" + y.name + lf.name);
+				if(beginIntOp == null){
+					beginIntOp = new cpnmeta!Place;
+					pn.addPlace(beginIntOp,"after"+ y.name + lf.name);
+				}
+
+				pn.addArcTP(dY,beginIntOp,"2");
+
+				var finalTrans : new cpnmeta!Trans;
+				pn.addTransition(finalTrans,"end" + s.interactionOperator.name + lf.name);
+
+				var finalPlace = null;
+				finalPlace = page.places.selectOne(it | it.text = "after" + s.name + lf.name);
+				if(finalPlace == null){
+					finalPlace = new cpnmeta!Place;
+					pn.addPlace(finalPlace,"after"+ s.name + lf.name);
+				}
+				pn.addArcTP(dN,finalPlace,"2");
+				
+				pn.addArcTP(finalTrans,finalPlace,"2");
+
+				var lastEventPlace = y.getLastEventPlace(lf);
+				if(lastEventPlace == null){
+					lastEventPlace = beginIntOp;
+				}
+				pn.addArcPT(lastEventPlace,finalTrans,"2");
+			}
+		}
+	}
+	
+	//R8
+	if(s.interactionOperator.name = "alt"){
+
+		pn.addPlace(decider,"decider"+s.interactionOperator.name);
+		var decidingEvent = s.getOperands().first().getDecidingEvent();
+		var decidingLifeline = decidingEvent.getCovered();
+	
+		var intOpMap = new Map<uml!InteractionOperand,Int>;
+		var counter = 0;
+		for (y : uml!InteractionOperand in IntOpCont){
+			intOpMap.put(y,counter++);
+		}
+		var mult = IntOpCont.size()-1;
+
+		for (lf in s.getCovereds()){
+			var prevPlace;
+			var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+			var dN : new cpnmeta!Trans;
+			pn.addTransition(dN,"No"+lf.name);
+
+			if(e1 == null){
+				prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+			}
+			else{
+				prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+			}
+
+			pn.addArcPT(prevPlace,dN,"2");
+			
+			if(lf.name == decidingLifeline.name){
+				pn.addArcTP(dN,decider,"0");
+			}
+			else{
+				pn.addArcPT(decider,dN,"0");
+			}
+			
+			var finalPlace = page.places.selectOne(it|it.text = "after" + s.name + lf.name);
+
+			if(finalPlace == null){
+				finalPlace = new cpnmeta!Place;
+				pn.addPlace(finalPlace,"after"+ s.name + lf.name);
+			}
+
+			pn.addArcTP(dN,finalPlace,"2");
+			for (y : uml!InteractionOperand in IntOpCont){
+				var dY : new cpnmeta!Trans;
+				pn.addTransition(dY,"decision"+y.name+lf.name);
+				pn.addArcPT(prevPlace,dY,"2");
+				if(lf.name == decidingLifeline.name){
+					pn.addArcTP(dY,decider,intOpMap.get(y).toString());
+				}
+				else{
+					pn.addArcPT(decider,dY,intOpMap.get(y).toString());
+				}
+
+				var beginIntOp : new cpnmeta!Place;
+
+				pn.addPlace(beginIntOp,"after"+y.name+lf.name);
+				pn.addArcTP(dY,beginIntOp,"2");
+				var finalTrans : new cpnmeta!Trans;
+				pn.addTransition(finalTrans,"end"+ y.name + lf.name);
+				var lastEventPlace = y.getLastEventPlace(lf);
+				if(lastEventPlace == null){
+					lastEventPlace = beginIntOp;
+				}
+				pn.addArcPT(lastEventPlace,finalTrans,"2");
+				pn.addArcTP(finalTrans,finalPlace,"2");
+			}
+		}
+	}
+	
+	//R9
+	if(s.interactionOperator.name = "loop"){
+
+		pn.addPlace(decider,"counter"+s.interactionOperator.name);
+		for (y : uml!InteractionOperand in IntOpCont){
+			var n = y.getGuard().minint.value;
+			var m = y.getGuard().maxint.value;
+
+			var c : new cpnmeta!Var;
+			c.idname = "c";
+			c.type = color;
+			block.declarations.add(c);
+
+			var decidingEvent = y.getDecidingEvent();
+			var decidingLifeline = decidingEvent.getCovered();
+
+			for(lf in s.getCovereds()){
+				var dY = page.transs.selectOne(it|it.text = "Yes" + lf.name);
+				if(dY == null){
+					dY = new cpnmeta!Trans;
+					pn.addTransition(dY,"Yes"+lf.name);
+				}
+				
+				var dN = page.transs.selectOne(it|it.text = "No" + lf.name);
+				if(dN == null){
+					dN = new cpnmeta!Trans;
+					pn.addTransition(dN,"No"+lf.name);
+				}
+				
+				var prevPlace;
+				var e1 : uml!InteractionFragment = s.getPrevEvent(lf);
+
+				if(e1 == null){
+					prevPlace = page.places.selectOne(it|it.text = "begin" + lf.name);
+				}
+				else{
+					prevPlace = page.places.selectOne(it|it.text = "after" + e1.label + lf.name);
+				}
+
+				pn.addArcPT(prevPlace,dY,"2");
+				pn.addArcPT(prevPlace,dN,"2");
+				var beginIntOp : new cpnmeta!Place;
+				pn.addPlace(beginIntOp,"after"+y.name+lf.name);
+				pn.addArcTP(dY,beginIntOp,"2");
+
+				var finalTrans = page.transs.selectOne(it|it.text = "end"+ s.interactionOperator.name + lf.name);
+				if(finalTrans == null){
+					finalTrans = new cpnmeta!Trans;
+					pn.addTransition(finalTrans,"end" + s.interactionOperator.name + lf.name);
+				}
+				
+				var loopTrans = page.transs.selectOne(it|it.text = "repeat" + s.interactionOperator.name + lf.name);
+				if(loopTrans == null){
+					loopTrans = new cpnmeta!Trans;
+					pn.addTransition(loopTrans,"repeat" + s.interactionOperator.name + lf.name);
+				}
+
+				var finalPlace : new cpnmeta!Place;
+				pn.addPlace(finalPlace,"after"+ s.name + lf.name);
+				pn.addArcTP(dN,finalPlace,"2");
+				pn.addArcTP(finalTrans,finalPlace,"1");
+				var lastEventPlace = y.getLastEventPlace(lf);
+				if(lastEventPlace == null){
+					lastEventPlace = beginIntOp;
+				}
+				pn.addArcPT(lastEventPlace,finalTrans,"2");
+				pn.addArcPT(lastEventPlace,loopTrans,"2");
+				pn.addArcTP(loopTrans,beginIntOp,"2");
+
+				if(lf.name == decidingLifeline.name){
+					pn.addArcTP(dY,decider,"1");
+					pn.addArcTP(loopTrans,decider,"c+1");
+					pn.addArcPT(decider,finalTrans,"c");
+					pn.addArcPT(decider,loopTrans,"c");
+					var guardCond = new cpnmeta!TransCond;
+					guardCond.text = "[c>=" + n.toString() + "]";
+					finalTrans.cond = guardCond;
+					var guardCond1 = new cpnmeta!TransCond;
+					guardCond1.text = "[c<=" + m.toString() + "]";
+					loopTrans.cond = guardCond1;
+				}
+				else{
+					var loopDecider : new cpnmeta!Place;
+					var counterProp : new cpnmeta!Place;
+					pn.addPlace(loopDecider,"loopDecider"+lf.name);
+					pn.addPlace(counterProp,"counterProp"+lf.name);
+	
+	
+					var dYDecision = page.transs.selectOne(it|it.text = "Yes" + decidingLifeline.name);
+					if(dYDecision == null){
+						dYDecision = new cpnmeta!Trans;
+						pn.addTransition(dYDecision,"Yes" + decidingLifeline.name);
+					}
+					var dNDecision = page.transs.selectOne(it|it.text = "No" + decidingLifeline.name);
+					if(dNDecision == null){
+						dNDecision = new cpnmeta!Trans;
+						pn.addTransition(dNDecision,"No"+decidingLifeline.name);
+					}
+
+					var loopTransDecision = page.transs.selectOne(it|it.text = "repeat" + s.interactionOperator.name+ decidingLifeline.name);
+					if(loopTransDecision == null){
+						loopTransDecision = new cpnmeta!Trans;
+						pn.addTransition(loopTransDecision,"repeat"+s.interactionOperator.name+decidingLifeline.name);
+					}
+					
+					var finalTransDecision = page.transs.selectOne(it|it.text = "end" + s.interactionOperator.name+ decidingLifeline.name);
+					if(finalTransDecision == null){
+						finalTransDecision = new cpnmeta!Trans;
+						pn.addTransition(finalTransDecision,"end" + s.interactionOperator.name + decidingLifeline.name);
+					}
+					pn.addArcTP(dYDecision,loopDecider,"1");
+					pn.addArcTP(dNDecision,loopDecider,"0");
+					pn.addArcTP(loopTransDecision,counterProp,"1");
+					pn.addArcTP(finalTransDecision,counterProp,"0");
+					pn.addArcPT(loopDecider,dY,"1");
+					pn.addArcPT(loopDecider,dN,"0");
+					pn.addArcPT(counterProp,finalTrans,"0");
+					pn.addArcPT(counterProp,loopTrans,"1");
+				}
+			}
+		}
+	}
+}
+
+
+//R10
+rule messages2placesAndTransitions
+transform s : uml!Message
+to p: cpnmeta!Place, t1 : cpnmeta!Trans , t2: cpnmeta!Trans
+{
+	pn.addPlace(p,s.label);
+	
+	var p1 : cpnmeta!Place; 
+	var p2 : cpnmeta!Place; 
+	var p3 : cpnmeta!Place; 
+	var p4 : cpnmeta!Place; 
+	
+	var e1 : uml!InteractionFragment = s.getSendEvent().getPrevEvent(s.getSendEvent().getCovered());
+	var e2 : uml!InteractionFragment = s.getReceiveEvent().getPrevEvent(s.getReceiveEvent().getCovered());
+	if(e1 == null){
+		p1 = page.places.selectOne(it|it.text = "begin" + s.getSendEvent().getCovered().Name);
+	}
+	else{
+		if(e1.isTypeOf(uml!BehaviorExecutionSpecification)){
+			p1 = page.places.selectOne(it|it.text = "after" + e1.getStart.Name +s.getSendEvent().getCovered().Name);
+		}
+		else{
+			p1 = page.places.selectOne(it|it.text = "after" + e1.Name +s.getSendEvent().getCovered().Name);
+		}
+	}
+
+	if(e2 == null){
+		p3 = page.places.selectOne(it|it.text = "begin" + s.getReceiveEvent().getCovered().Name);
+	}
+	else{
+		if(e2.isTypeOf(uml!BehaviorExecutionSpecification)){
+			p3 = page.places.selectOne(it|it.text = "after" + e2.getStart.Name +s.getReceiveEvent().getCovered().Name);
+		}
+		else{
+			p3 = page.places.selectOne(it|it.text = "after" + e2.Name +s.getReceiveEvent().getCovered().Name);
+		}
+	}
+		
+	p2 = page.places.selectOne(it|it.text = "after" + s.getSendEvent().Name + s.getSendEvent().getCovered().Name);
+	p4 = page.places.selectOne(it|it.text = "after" + s.getReceiveEvent().Name + s.getReceiveEvent().getCovered().Name);
+	pn.addTransition(t1,"send" + s.label);
+	pn.addTransition(t2,"Recv" + s.label);
+	pn.addArcPT(p1,t1,"2");
+	pn.addArcTP(t1,p2,"2");
+	pn.addArcTP(t1,p,"2");
+	pn.addArcPT(p,t2,"2");
+	pn.addArcPT(p3,t2,"2");
+	pn.addArcTP(t2,p4,"2");
+	
+}
+
+
+//R11
+post {
+	var end : new cpnmeta!Place;
+	var transF : new cpnmeta!Trans;
+	pn.addPlace(end,"end");
+	pn.addTransition(transF,"final");
+	pn.addArcTP(transF,end,"2");
+	end.fillColour = cpnmeta!Colour16#White;
+
+	var temp;
+	for(p in page.places){
+		temp = null;
+		if(not (p.text == "end")){
+			for(a in page.arcs){
+				if((a.orientation == cpnmeta!Orientation#PtoT) and (a.place == p)){
+					temp = a;
+				}
+			}
+			if (temp == null){
+				pn.addArcPT(p,transF,"2");
+			}
+		}
+	}
+}
+
+
+operation uml!InteractionFragment getPrevEvent(lf : uml!Lifeline) : uml!InteractionFragment{
+	var prev;
+	prev = null;
+	for (lfs in self.getCovereds()){
+		if(lfs == lf){
+			for(frag in lfs.getCoveredBys())
+				if(frag == self){
+					return prev;
+				}
+				else{
+					if(frag.getCovereds.contains(lf)){
+						prev = frag;
+					}
+				}
+		}
+	}
+}
+
+
+operation uml!InteractionOperand getDecidingEvent() : uml!InteractionFragment{
+	if (self.getFragments().first().isTypeOf(uml!CombinedFragment)){
+		return self.getFragments().first().getDecidingEvent();
+	}
+	else{
+		return self.getFragments().first();
+	}
+}
+
+
+operation uml!InteractionOperand getLastEventPlace(lf : uml!Lifeline) : cpnmeta!Place{
+	var lastEvent;
+	var lastEventPlace;
+	var EventCont;
+	EventCont = self.getFragments();
+	EventCont = EventCont.select(it|it.getEnclosingOperand() = self);
+	lastEvent = EventCont.select(it|it.getCovereds().contains(lf));
+
+	if (lastEvent.last() == null){
+		return null;
+	}
+	
+	var finalPlace = null;
+	finalPlace = page.places.selectOne(it|it.text = "after" + lastEvent.last().name + lf.name);
+	if(finalPlace == null){
+		finalPlace = new cpnmeta!Place;
+		pn.addPlace(finalPlace,"after"+ lastEvent.last().name +lf.name);
+		lastEventPlace = finalPlace;
+	}
+	else{
+		lastEventPlace = page.places.selectOne(it|it.text = "after" + lastEvent.last().name + lf.name);
+	}
+		
+	return lastEventPlace;
+}
+
+
+operation cpnmeta!Cpnet addPlace(pl : cpnmeta!Place, name : String){
+	var page = self.binder.pages[0];
+	pl.text = name;
+	pl.type = color;
+	page.places.add(pl);
+}
+
+operation cpnmeta!Cpnet addTransition(trans : cpnmeta!Trans, name : String){
+	var page = self.binder.pages[0];
+	trans.text = name;
+	page.transs.add(trans);
+
+}
+
+operation cpnmeta!Cpnet addArcPT(pl : cpnmeta!Place, trans : cpnmeta!Trans, cicle : String){
+	var page = self.binder.pages[0];
+	var a : new cpnmeta!Arc;
+	a.trans = trans;
+	a.place = pl;
+	a.currentcyckle = cicle;
+	a.orientation = cpnmeta!Orientation#PtoT;
+	page.arcs.add(a);
+}
+
+operation cpnmeta!Cpnet addArcTP(trans : cpnmeta!Trans, pl : cpnmeta!Place, cicle : String){
+	var page = self.binder.pages[0];
+	var a : new cpnmeta!Arc;
+	a.trans = trans;
+	a.place = pl;
+	a.currentcyckle = cicle;
+	a.orientation = cpnmeta!Orientation#TtoP;
+	page.arcs.add(a);
+}

@@ -1,0 +1,116 @@
+context Interaction{
+	constraint HasLifelines{
+		check : not (self.getLifelines().isEmpty)
+		message : 'Diagram must have at least one lifeline'
+	}
+}
+
+context Message{
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Messages must have names'
+	}
+	
+	constraint HasSender{
+		guard : self.name.isDefined()
+		check : self.getSendEvent().isDefined()
+		message : 'Message ' + self.name +  ' must have a sender'
+	}
+	
+	constraint SenderIsInLifeline{
+		guard : self.name.isDefined() and self.getSendEvent().isDefined()
+		check : self.getSendEvent().getCovered().isDefined()
+		message : 'Message ' + self.name + ' sender is not in a lifeline'
+	}
+	
+	constraint HasReceiver{
+		guard : self.name.isDefined()
+		check : self.getReceiveEvent().isDefined()
+		message : 'Message ' + self.name +  ' must have a receiver'
+	}
+	
+	constraint ReceiverIsInLifeline{
+		guard : self.name.isDefined() and self.getReceiveEvent().isDefined()
+		check : self.getReceiveEvent().getCovered().isDefined()
+		message : self.name + ' receiver is not in a lifeline'
+	}
+	
+}
+
+context CombinedFragment{
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Avoid unnamed fragments'
+	}
+
+	constraint CoversLifeline{
+		guard : self.name.isDefined()
+		check : not (self.getCovereds().isEmpty())
+		message : 'Combined fragment' + self.name + ' should cover at least one lifeline'
+	}
+	
+	constraint hasGuard{
+		guard : self.name.isDefined() and self.getInteractionOperator().toString().needsGuard()
+		check : self.hasGuards()
+		message : 'Combined fragment ' + self.name + ' of type ' + self.getInteractionOperator().toString() + ' is missing one or more guard in its operands'
+	}
+	
+	constraint isAllowedType{
+		check : self.getInteractionOperator().toString().isValidType()
+		message : 'The combined fragments this simulator supports are the following: Alt, Loop, Opt, Par, Seq, Strict'
+	}
+}
+
+context Lifeline{
+	constraint HasName{
+		check : self.name.isDefined()
+		message : 'Avoid unnamed lifelines'
+	}
+	
+	constraint checkSyncMessages{
+		check : self.checkLifeline()
+		message : 'Lifeline ' + self.name + ' should receive replies to its sync messages'
+	
+	}
+}
+
+operation String isValidType() : Boolean {
+  	return self.matches('alt|opt|loop|par|seq|strict');
+}
+
+operation String needsGuard() : Boolean {
+  	return self.matches('alt|opt|loop');
+}
+
+operation CombinedFragment hasGuards() : Boolean{
+	for (io : InteractionOperand in self.getOperands()){
+		if(not io.getGuard().isDefined()){return false;}
+	}
+	return true;
+}
+
+operation Lifeline checkLifeline() : Boolean{
+	var sync = new Map<String,Integer>();
+	var reply = new Map<String,Integer>();
+	for (mos : MessageEnd in self.getCoveredBys()){
+		if(mos.getMessage().getMessageSort().toString().equals("Synch Call")){
+			if(mos.isSend()){
+				var rec = mos.getMessage().getReceiveEvent().enclosingFragment()[0].getCovereds()[0].name;
+				sync.put(rec, sync.get(rec)+1);
+			}
+		}
+		if(mos.getMessage().getMessageSort().toString().equals("Reply")){
+			if(mos.isReceive()){
+				var rec = mos.getMessage().getSendEvent().enclosingFragment()[0].getCovereds()[0].name;
+				reply.put(rec, reply.get(rec)+1);
+			}
+		}
+	}
+	for (k in sync.keySet()){
+		if(not (sync.get(k)==reply.get(k))){
+			return false;
+		}
+	}
+	return true;
+}
+

@@ -1,0 +1,225 @@
+
+context Activity{
+
+	constraint OneInitial{
+		check : self.initialNodes() = 1
+		message : 'Activity should avoid none or more than one initial node. Instead got ' + self.initialNodes()
+	}
+	
+	constraint OneFinal{
+		check :  self.finalNodes() = 1
+		message : 'Activity should avoid none or more than one final node. Instead got ' + self.finalNodes()
+	}
+	
+	constraint NodesHaveNames{
+		check : self.nodesHaveNames()
+		message : 'All Activity Nodes must have a name'
+	}
+	
+	constraint NodeNamesValid{
+		guard : self.nodesHaveNames()
+		check : self.illegalNames().equals("")
+		message : 'Node names {' + self.illegalNames() + '} must contain only letters, numbers, dashes, underscores and spaces'
+	}
+	
+	constraint InitialCorrect{
+		check : self.initialCorrect()
+		message : 'Initial node cannot have incoming edges'
+	}
+	
+	constraint FinalCorrect{
+		check : self.finalCorrect()
+		message : 'Final node cannot have outgoing edges'
+	}
+	
+	constraint OtherCorrect{
+		check : self.incorrectNodes().equals("")
+		message : 'In ' + self.incorrectNodes() + ': Opaque Actions and Decision, Fork, Join and Merge nodes must have at least one incoming and outgoing edge'
+	}
+	
+	constraint OneOutgoing{
+		check : self.wrongOutgoing().equals("")
+		message : 'In ' + self.wrongOutgoing() + ': Opaque Actions and Merge and Join nodes must have only one output edge'
+	}
+	
+	constraint OneIncoming{
+		check : self.wrongIncoming().equals("")
+		message : 'In ' + self.wrongIncoming() + ': Opaque Actions and Decision and Fork nodes must have only one input edge'
+	}
+	
+}
+
+context ControlFlow{
+
+	constraint HasSourceAndTarget{
+		check : self.source.isDefined() and self.target.isDefined()
+		message : 'Control Flow should have at least one target node and one source node'
+	}
+	
+	constraint HasOnlyBasicNodes{
+		guard : self.source.isDefined() and self.target.isDefined()
+		check : isValidType(self.source) and isValidType(self.target)
+		message : 'Control Flow target and source are reduced to the subset: {Opaque Actions + Initial, Decision, Fork, Join, Merge, and Final activity nodes}'
+	}
+	
+	constraint SourceIsNotTarget{
+		guard : self.source.isDefined() and self.target.isDefined()
+		check : self.source != self.target
+		message : 'A node cannot have an edge connecting it to itself'
+	}
+
+	constraint ValidGuard{
+		guard : self.source.isDefined() and self.target.isDefined()
+		check : hasValidGuard(self)
+		message : 'Control Flow name must always and only be defined for edges leaving decision nodes'
+	}
+	
+	constraint ValidGuardSize{
+		guard : self.source.isDefined() and self.source.isTypeOf(DecisionNode)
+		check : self.name.length>2
+		message : 'A guard (name) in a Control Flow leaving a Decision Node must always be between [ and ] and not be empty'
+	}
+	
+	constraint ValidGuardName{
+		guard : self.source.isDefined() and self.target.isDefined() and self.source.isTypeOf(DecisionNode) and self.name.isDefined() and self.name.length>2
+		check : isValidName(self.name.toString().substring(1,self.name.toString().length-1))
+		message : 'In ' + self.name + ': A guard (name) in a Control Flow leaving a Decision Node must contain only letters, numbers, dashes, underscores and spaces (apart from the required [ and ] )'
+	}
+	
+	constraint ValidGuardFormat{
+		guard : self.source.isDefined() and self.target.isDefined() and self.source.isTypeOf(DecisionNode) and self.name.isDefined() and isValidName(self.name.toString().substring(1,self.name.toString().length-1)) and self.name.length>2
+		check : isValidGuardName(self.name.toString())
+		message : 'In ' + self.name + ': A guard (name) in a Control Flow leaving a Decision Node must always be between [ and ] and not be empty'
+	}
+}
+
+
+operation isValidName(s : String) : Boolean {
+ 	return s.matches("[ 0-9A-Za-z-_]+$");
+}
+
+
+operation hasValidGuard(c : ControlFlow) : Boolean {
+	if(c.source.isTypeOf(DecisionNode)){
+		if(not c.name.isDefined()){return false;}
+		else{return true;}
+	}
+	else{
+		if(c.name.isDefined()){return false;}
+		else{return true;}
+	}
+}
+
+operation isValidGuardName(g : String) : Boolean {
+	var l = g.length;
+	var j = l-1;
+	if(l>2 and g.indexOf(']')==j and g.indexOf('[')==0){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+operation isValidType(an : ActivityNode) : Boolean {
+	return
+	(an.isTypeOf(InitialNode)) or (an.isTypeOf(DecisionNode)) or (an.isTypeOf(JoinNode)) or (an.isTypeOf(ForkNode)) or (an.isTypeOf(MergeNode)) or (an.isTypeOf(ActivityFinalNode)) or (an.isTypeOf(OpaqueAction));
+}
+
+operation Activity initialCorrect() : Boolean{
+	for(a : InitialNode in self.nodes){
+		if(not a.getIncomings().isEmpty()){
+			return a.getIncomings().size==0;
+		}
+		else{return true;}
+	}
+}
+
+operation Activity finalCorrect() : Boolean{
+	for(a : ActivityFinalNode in self.nodes){
+		if(not a.getOutgoings().isEmpty()){
+			return a.getOutgoings().size==0;
+		}
+		else{return true;}
+	}
+}
+
+operation Activity initialNodes() : Integer {
+  	var counter = 0;
+  	for(n : InitialNode in self.nodes){
+  		counter++;
+  	}
+	return counter;
+}
+
+operation Activity finalNodes() : Integer {
+  	var counter = 0;
+  	for(n : ActivityFinalNode in self.nodes){
+  		counter++;
+  	}
+	return counter;
+}
+
+operation Activity nodesHaveNames() : Boolean{
+	for(n in self.nodes){
+		if(n.name.isUndefined()){
+			return false;
+		}
+	}
+	return true;
+}
+
+operation Activity illegalNames() : String{
+	var s = "";
+	var counter = 0;
+	for(n in self.nodes){
+		if(not isValidName(n.name.toString())){
+			if(counter>0){s+=", ";}
+			s+=n.name.toString();
+			counter++;
+		}
+	}
+	return s;
+}
+
+operation Activity incorrectNodes() : String{
+	var s = "";
+	var counter = 0;
+	for(n in self.nodes){
+		if((n.isTypeOf(MergeNode) or n.isTypeOf(JoinNode) or n.isTypeOf(ForkNode) or n.isTypeOf(DecisionNode) or n.isTypeOf(OpaqueAction)) and n.name.isDefined())
+			if(n.getOutgoings().isEmpty() or n.getIncomings().isEmpty()){
+				if(counter>0){s+=", ";}
+				s+=n.name.toString();
+				counter++;
+			}
+	}
+	return s;
+}
+
+operation Activity wrongOutgoing() : String{
+	var s = "";
+	var counter = 0;
+	for(n in self.nodes){
+		if((n.isTypeOf(MergeNode) or n.isTypeOf(JoinNode) or n.isTypeOf(OpaqueAction)) and (not n.getOutgoings().isEmpty()) and n.name.isDefined())
+			if(n.getOutgoings().size>1){
+				if(counter>0){s+=", ";}
+				s+=n.name.toString();
+				counter++;
+			}
+	}
+	return s;
+}
+
+operation Activity wrongIncoming() : String{
+	var s = "";
+	var counter = 0;
+	for(n in self.nodes){
+		if((n.isTypeOf(DecisionNode) or n.isTypeOf(ForkNode) or n.isTypeOf(OpaqueAction)) and (not n.getIncomings().isEmpty()) and n.name.isDefined())
+			if(n.getIncomings().size>1){
+				if(counter>0){s+=", ";}
+				s+=n.name.toString();
+				counter++;
+			}
+	}
+	return s;
+}
