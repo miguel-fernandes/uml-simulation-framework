@@ -76,7 +76,12 @@ for (s in reg.subvertex){
 								if (t.effect.isDefined()){
 									fs += "/{" + t.effect.name + ";} ";
 								}
-								fs += "-> " + t.target.name + ";\n";
+								if(t.target.type().name.toString.equals("FinalState")){
+									fs += "-> " + "Final;\n";
+								}
+								else{
+									fs += "-> " + t.target.name + ";\n";
+								}
 							}
 						}
 						if(t.target.type().name.toString == "Pseudostate" and 
@@ -97,9 +102,6 @@ for (s in reg.subvertex){
 								}
 								if(t.target.kind.toString.equals("deepHistory")){
 									fs += "-> " + t.target.state.name + ".HStar;\n";
-								}
-								if(t.target.kind.toString.equals("final")){
-									fs += "-> " + "Final;\n";
 								}
 							}
 						}
@@ -136,7 +138,13 @@ for (s in reg.subvertex){
 								if (t.effect.isDefined()){
 									ret += "/{" + t.effect.name + ";} ";
 								}
-								ret += "-> " + t.target.name + ";\n";
+								
+								if(t.target.type().name.toString.equals("FinalState")){
+									ret += "-> " + "Final;\n";
+								}
+								else{
+									ret += "-> " + t.target.name + ";\n";
+								}
 							}
 						}
 						if(t.target.type().name.toString == "Pseudostate" and
@@ -157,9 +165,6 @@ for (s in reg.subvertex){
 								}
 								if(t.target.kind.toString.equals("deepHistory")){
 									ret += "-> " + t.target.state.name + ".HStar;\n";
-								}
-								if(t.target.kind.toString.equals("final")){
-									fs += "-> " + "Final;\n";
 								}
 							}
 						}
