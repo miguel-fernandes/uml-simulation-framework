@@ -32,13 +32,13 @@ context Transition{
 	constraint InitialIsNotTarget{
 		guard : self.target.isDefined()
 		check : not (self.target.type().name.toString.equals("Pseudostate") and self.target.kind.toString.equals("initial"))
-		message : 'A transition cannot have an initial pseudostate has its target (only as its source)'
+		message : 'A transition cannot have an initial pseudostate as its target (only as its source)'
 	}
 	
 	constraint FinalIsNotSource{
 		guard : self.source.isDefined() 
-		check : not (self.source.type().name.toString.equals("Pseudostate") and self.source.kind.toString.equals("final"))
-		message : 'A transition cannot have an final pseudostate has its source (only as its target)'
+		check : not (self.source.type().name.toString.equals("FinalState"))
+		message : 'A transition cannot have an final state as its source (only as its target)'
 	}
 	
 	constraint HasValidSource{
